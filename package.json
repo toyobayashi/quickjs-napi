@@ -9,17 +9,12 @@
   "exports": {
     ".": {
       "module": "./dist/quickjs.esm-bundler.js",
-      "import": "./dist/quickjs.mjs",
+      "import": "./index.mjs",
       "require": "./index.js",
       "types": "./dist/quickjs.d.ts"
     },
     "./dist/quickjs.cjs.min": {
       "default": "./dist/quickjs.cjs.min.js",
-      "types": "./dist/quickjs.d.ts"
-    },
-    "./dist/quickjs.min.mjs": {
-      "import": "./dist/quickjs.min.mjs",
-      "require": null,
       "types": "./dist/quickjs.d.ts"
     }
   },
@@ -29,11 +24,16 @@
     "napi"
   ],
   "scripts": {
-    "configure:emcc": "emcmake cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=1 -H. -Bbuild",
-    "build:emcc": "cmake --build build"
+    "install": "cmake-js compile -O build/native",
+    "configure": "cmake-js configure -O build/native",
+    "build": "cmake-js build -O build/native",
+    "configure:emcc": "emcmake cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=1 -H. -Bbuild/emscripten",
+    "build:emcc": "cmake --build build/emscripten",
+    "test": "node ./test/index.js"
   },
   "dependencies": {
-    "@emnapi/runtime": "^0.38.2"
+    "@emnapi/runtime": "^0.38.2",
+    "cmake-js": "^7.2.1"
   },
   "devDependencies": {
     "emnapi": "^0.38.2"
