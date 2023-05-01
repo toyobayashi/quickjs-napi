@@ -13,5 +13,8 @@ export declare class Context {
 
 export declare namespace std {
   export function initHandlers(rt: Runtime): void
+  export function freeHandlers(rt: Runtime): void
   export function loop(ctx: Context): void
+  export function dumpError(ctx: Context): void
+  export function evalBinary(ctx: Context, buffer: ArrayBufferView, flags?: boolean | number): void
 }

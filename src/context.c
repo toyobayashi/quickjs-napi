@@ -73,7 +73,7 @@ static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
     JS_FreeValue(ctx, error);
   }
   // TODO: translate JSValue to host object
-
+  JS_FreeValue(ctx, value);
   return NULL;
 }
 
