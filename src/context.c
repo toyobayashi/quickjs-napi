@@ -1,19 +1,12 @@
-#include <js_native_api.h>
 #include <quickjs.h>
 #include <quickjs-libc.h>
+#include "context.h"
 #include "helper_macro.h"
 
 static napi_value qjs_context_constructor(napi_env env, napi_callback_info info) {
-  size_t argc = 1;
-  napi_value argv;
-  napi_value this_arg;
   JSRuntime* rt = NULL;
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &argv, &this_arg, NULL));
-  if (argc == 0) {
-    napi_throw_error(env, NULL, "Invalid quickjs runtime");
-    return NULL;
-  }
-  NAPI_CALL(env, napi_unwrap(env, argv, (void**)&rt));
+  NAPI_GET_CB_INFO(env, info, 1, "Invalid Runtime")
+  NAPI_UNWRAP(env, argv[0], &rt, "Invalid Runtime");
   JSContext* ctx = JS_NewContextRaw(rt);
   if (ctx == NULL) {
     NAPI_CALL(env, napi_throw_error(env, NULL, "failed to create context"));
@@ -36,44 +29,40 @@ static napi_value qjs_context_constructor(napi_env env, napi_callback_info info)
 }
 
 static napi_value qjs_context_dispose(napi_env env, napi_callback_info info) {
-  napi_value this_arg;
-  NAPI_CALL(env, napi_get_cb_info(env, info, NULL, NULL, &this_arg, NULL));
   JSContext* ctx = NULL;
-  NAPI_CALL(env, napi_remove_wrap(env, this_arg, (void**)(&ctx)));
+  NAPI_GET_CB_INFO_THIS(env, info)
+  NAPI_REMOVE_WRAP(env, this_arg, &ctx, "Invalid Context");
 
   JS_FreeContext(ctx);
-
   return NULL;
 }
 
-static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
-  size_t argc = 1;
-  napi_value argv;
-  napi_value this_arg;
+static napi_value qjs_context_data(napi_env env, napi_callback_info info) {
   JSContext* ctx = NULL;
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &argv, &this_arg, NULL));
-  if (argc == 0) {
-    napi_throw_error(env, NULL, "Invalid source input");
-    return NULL;
-  }
-  napi_valuetype t;
-  NAPI_CALL(env, napi_typeof(env, argv, &t));
-  if (t != napi_string) {
-    napi_throw_error(env, NULL, "Source is not string");
-    return NULL;
-  }
+  NAPI_GET_CB_INFO_THIS(env, info)
+  NAPI_UNWRAP(env, this_arg, &ctx, "Invalid Context");
+
+  napi_value ret;
+  NAPI_CREATE_POINTER_VALUE(env, ctx, &ret);
+  return ret;
+}
+
+static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
+  JSContext* ctx = NULL;
+  NAPI_GET_CB_INFO(env, info, 1, "Invalid source input")
+  NAPI_CHECK_VALUE_TYPE(env, argv[0], napi_string, "Source is not string");
 
   size_t len = 0;
-  NAPI_CALL(env, napi_get_value_string_utf8(env, argv, NULL, 0, &len));
+  NAPI_CALL(env, napi_get_value_string_utf8(env, argv[0], NULL, 0, &len));
   char* buf = (char*)malloc(len + 1);
-  napi_status r = napi_get_value_string_utf8(env, argv, buf, len + 1, &len);
+  napi_status r = napi_get_value_string_utf8(env, argv[0], buf, len + 1, &len);
   if (r != napi_ok) {
     free(buf);
     NAPI_CALL(env, r);
   }
   *(buf + len) = '\0';
-  
-  NAPI_CALL(env, napi_unwrap(env, this_arg, (void**)(&ctx)));
+
+  NAPI_UNWRAP(env, this_arg, &ctx, "Invalid Context");
   JSValue value = JS_Eval(ctx, buf, len, "<evalScript>", JS_EVAL_TYPE_GLOBAL);
   if (JS_IsException(value)) {
     JSValue error = JS_GetException(ctx);
@@ -89,10 +78,15 @@ static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
 }
 
 void register_qjs_context_class(napi_env env, napi_value exports) {
-  napi_property_descriptor properties[2] = {
+  napi_property_descriptor properties[] = {
     {
       "dispose", NULL,
       qjs_context_dispose, NULL, NULL, NULL,
+      NAPI_INSTANCE_METHOD_ATTR, NULL
+    },
+    {
+      "data", NULL,
+      qjs_context_data, NULL, NULL, NULL,
       NAPI_INSTANCE_METHOD_ATTR, NULL
     },
     {

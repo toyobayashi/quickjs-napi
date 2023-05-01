@@ -7,16 +7,22 @@ if (typeof window !== 'undefined') {
     main(binding)
   })
 } else {
-  main(require('../build/native/Release/qjs_binding.node'))
+  main(require('..'))
 }
 
+/**
+ * @param {import('..')} binding 
+ */
 function main (binding) {
-  const { Runtime, Context, libc } = binding
+  const { Runtime, Context, std } = binding
   console.log(binding)
   const rt = new Runtime()
+  console.log('rt:', rt.data())
+  std.initHandlers(rt)
   const ctx = new Context(rt)
+  console.log('ctx:', ctx.data())
   ctx.eval("Promise.resolve(Object.keys(globalThis)).then(console.log)")
-  libc.loop(ctx)
+  std.loop(ctx)
   ctx.dispose()
   rt.dispose()
 }

@@ -4,18 +4,18 @@
   "description": "QuickJS Node-API binding",
   "main": "index.js",
   "module": "./dist/quickjs.esm-bundler.js",
-  "types": "./dist/quickjs.d.ts",
+  "types": "./index.d.ts",
   "sideEffects": false,
   "exports": {
     ".": {
       "module": "./dist/quickjs.esm-bundler.js",
       "import": "./index.mjs",
       "require": "./index.js",
-      "types": "./dist/quickjs.d.ts"
+      "types": "./index.d.ts"
     },
     "./dist/quickjs.cjs.min": {
       "default": "./dist/quickjs.cjs.min.js",
-      "types": "./dist/quickjs.d.ts"
+      "types": "./index.d.ts"
     }
   },
   "keywords": [

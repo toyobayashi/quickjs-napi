@@ -23,7 +23,7 @@ set(QJS_BINDING_SRC
   "src/binding.c"
   "src/context.c"
   "src/runtime.c"
-  "src/libc.c"
+  "src/std.c"
 )
 
 if(IS_EMSCRIPTEN)
