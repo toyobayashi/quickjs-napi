@@ -35,12 +35,10 @@ if(IS_EMSCRIPTEN)
     "-sALLOW_MEMORY_GROWTH"
     "-sMODULARIZE=1"
     "-sEXPORT_NAME=quickjs"
-    "-sENVIRONMENT=web"
     "-sSAFE_HEAP=1"
     "-sSTACK_SIZE=5MB"
     "--minify=0"
     "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/src/pre.js"
-    "--post-js=${CMAKE_CURRENT_SOURCE_DIR}/src/post.js"
   )
 else()
   include_directories(${CMAKE_JS_INC})
