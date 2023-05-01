@@ -47,6 +47,38 @@ static napi_value qjs_context_data(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
+  napi_value ret = NULL;
+  if (JS_IsUndefined(val)) {
+    NAPI_CALL(env, napi_get_undefined(env, &ret));
+  } else if (JS_IsNull(val)) {
+    NAPI_CALL(env, napi_get_null(env, &ret));
+  } else if (JS_IsBool(val)) {
+    NAPI_CALL(env, napi_get_boolean(env, (bool)JS_VALUE_GET_BOOL(val), &ret));
+  } else if (JS_IsNumber(val)) {
+    if (JS_VALUE_IS_NAN(val)) {
+      napi_value global;
+      NAPI_CALL(env, napi_get_global(env, &global));
+      NAPI_CALL(env, napi_get_named_property(env, global, "NaN", &ret));
+    } else if (JS_TAG_IS_FLOAT64(val)) {
+      NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_FLOAT64(val), &ret));
+    } else {
+      NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_INT(val), &ret));
+    }
+  } else if (JS_IsString(val)) {
+    const char* str = JS_ToCString(ctx, val);
+    NAPI_CALL(env, napi_create_string_utf8(env, str, NAPI_AUTO_LENGTH, &ret));
+  } else if (JS_IsBigInt(ctx, val)) {
+    int64_t tmp;
+    JS_ToBigInt64(ctx, &tmp, val);
+    NAPI_CALL(env, napi_create_bigint_int64(env, tmp, &ret));
+  }/*  else {
+    NAPI_CALL(env, napi_throw_type_error(env, NULL, "unsupported type"));
+    return NULL;
+  } */
+  return ret;
+}
+
 static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
   JSContext* ctx = NULL;
   NAPI_GET_CB_INFO(env, info, 1, "Invalid source input")
@@ -72,9 +104,10 @@ static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
     JS_FreeValue(ctx, message);
     JS_FreeValue(ctx, error);
   }
-  // TODO: translate JSValue to host object
+
+  napi_value ret = to_napi_value(env, ctx, value);
   JS_FreeValue(ctx, value);
-  return NULL;
+  return ret;
 }
 
 void register_qjs_context_class(napi_env env, napi_value exports) {

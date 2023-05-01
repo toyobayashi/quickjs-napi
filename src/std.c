@@ -64,6 +64,8 @@ static JSValue eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
     }
 }
 
+napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val);
+
 static napi_value qjs_std_eval_binary(napi_env env, napi_callback_info info) {
   JSContext* ctx = NULL;
   size_t argc = 3;
@@ -142,9 +144,9 @@ static napi_value qjs_std_eval_binary(napi_env env, napi_callback_info info) {
     JS_FreeValue(ctx, error);
   }
 
-  // TODO: translate JSValue to host object
+  napi_value ret = to_napi_value(env, ctx, val);
   JS_FreeValue(ctx, val);
-  return NULL;
+  return ret;
 }
 
 void register_qjs_std_namespace(napi_env env, napi_value exports) {
