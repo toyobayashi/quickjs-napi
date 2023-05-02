@@ -60,7 +60,7 @@ napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
       napi_value global;
       NAPI_CALL(env, napi_get_global(env, &global));
       NAPI_CALL(env, napi_get_named_property(env, global, "NaN", &ret));
-    } else if (JS_TAG_IS_FLOAT64(val)) {
+    } else if (JS_VALUE_GET_TAG(val) == JS_TAG_FLOAT64) {
       NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_FLOAT64(val), &ret));
     } else {
       NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_INT(val), &ret));
