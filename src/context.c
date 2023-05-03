@@ -47,6 +47,13 @@ static napi_value qjs_context_data(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+typedef struct cfunc_promise_data {
+  napi_env env;
+  napi_deferred deferred;
+} cfunc_promise_data;
+static JSValue promise_then_cb_fulfill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data);
+static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data);
+
 napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
   napi_value ret = NULL;
   if (JS_IsUndefined(val)) {
@@ -72,11 +79,65 @@ napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
     int64_t tmp;
     JS_ToBigInt64(ctx, &tmp, val);
     NAPI_CALL(env, napi_create_bigint_int64(env, tmp, &ret));
-  }/*  else {
+  } else if (JS_IsSymbol(val)) {
+    JSAtom atom = JS_ValueToAtom(ctx, val);
+    JSValue str = JS_AtomToString(ctx, atom);
+    napi_value desc;
+    napi_create_string_utf8(env, JS_ToCString(ctx, str), NAPI_AUTO_LENGTH, &desc);
+    napi_create_symbol(env, desc, &ret);
+    JS_FreeValue(ctx, str);
+    JS_FreeAtom(ctx, atom);
+  } else if (JS_IsObject(val)) {
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue promise_ctor = JS_GetPropertyStr(ctx, global, "Promise");
+    if (!JS_IsUndefined(promise_ctor) && JS_IsInstanceOf(ctx, val, promise_ctor)) {
+      JSValue then = JS_GetPropertyStr(ctx, val, "then");
+      JSValue deferred_ref = JS_NewObject(ctx);
+      napi_deferred deferred;
+      cfunc_promise_data* data = (cfunc_promise_data*)malloc(sizeof(cfunc_promise_data));
+      data->env = env;
+      napi_create_promise(env, &deferred, &ret);
+      data->deferred = deferred;
+      JS_SetOpaque(deferred_ref, (void*)data);
+      JSValue argv[2] = {
+        JS_NewCFunctionData(ctx, promise_then_cb_fulfill, 1, 0, 1, &deferred_ref),
+        JS_NewCFunctionData(ctx, promise_then_cb_reject, 1, 0, 1, &deferred_ref)
+      };
+      JSValue return_val = JS_Call(ctx, then, val, 2, argv);
+      JS_FreeValue(ctx, argv[0]);
+      JS_FreeValue(ctx, argv[1]);
+      JS_FreeValue(ctx, return_val);
+      JS_FreeValue(ctx, then);
+    }
+    JS_FreeValue(ctx, promise_ctor);
+    JS_FreeValue(ctx, global);
+    return ret;
+  } else {
     NAPI_CALL(env, napi_throw_type_error(env, NULL, "unsupported type"));
     return NULL;
-  } */
+  }
   return ret;
+}
+
+static JSValue promise_then_cb_fulfill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) {
+  cfunc_promise_data* data = (cfunc_promise_data*)JS_GetOpaque(*func_data, 1);
+  napi_env env = data->env;
+  napi_deferred deferred = data->deferred;
+  free(data);
+  JS_FreeValue(ctx, *func_data);
+  napi_resolve_deferred(env, deferred, to_napi_value(env, ctx, *argv));
+  return *argv;
+}
+
+static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) {
+  cfunc_promise_data* data = (cfunc_promise_data*)JS_GetOpaque(*func_data, 1);
+  napi_env env = data->env;
+  napi_deferred deferred = data->deferred;
+  free(data);
+  JS_FreeValue(ctx, *func_data);
+  napi_reject_deferred(env, deferred, to_napi_value(env, ctx, *argv));
+  JS_Throw(ctx, *argv);
+  return JS_UNDEFINED;
 }
 
 static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
