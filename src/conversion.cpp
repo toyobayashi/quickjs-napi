@@ -31,7 +31,7 @@ static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int
   return JS_UNDEFINED;
 }
 
-static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSValue val, std::unordered_map<JSValue, napi_value>& seen) {
+static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSValue val, std::unordered_map<JSObject*, napi_value>& seen) {
   napi_value ret = NULL;
   if (JS_IsUndefined(val)) {
     NAPI_CALL(env, napi_get_undefined(env, &ret));
@@ -128,13 +128,16 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
     JS_FreeValue(ctx, regexp_ctor);
 
     if (JS_IsArray(ctx, val)) {
-      napi_create_array(env, &ret);
-      if (seen.find(val) == seen.end()) {
-        seen[val] = ret;
+      if (seen.find(JS_VALUE_GET_OBJ(val)) != seen.end()) {
+        JS_FreeValue(ctx, global);
+        return seen[JS_VALUE_GET_OBJ(val)];
       }
+      napi_create_array(env, &ret);
+      seen[JS_VALUE_GET_OBJ(val)] = ret;
 
       JSValue keys_len = JS_GetPropertyStr(ctx, val, "length");
       uint32_t len = (uint32_t)JS_VALUE_GET_INT(keys_len);
+      
       for (uint32_t i = 0; i < len; ++i) {
         JSValue v = JS_GetPropertyUint32(ctx, val, i);
         napi_set_element(env, ret, i, qjs_to_napi_value_internal(env, ctx, v, seen));
@@ -146,10 +149,12 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
       return ret;
     }
 
-    napi_create_object(env, &ret);
-    if (seen.find(val) == seen.end()) {
-      seen[val] = ret;
+    if (seen.find(JS_VALUE_GET_OBJ(val)) != seen.end()) {
+      JS_FreeValue(ctx, global);
+      return seen[JS_VALUE_GET_OBJ(val)];
     }
+    napi_create_object(env, &ret);
+    seen[JS_VALUE_GET_OBJ(val)] = ret;
 
     JSValue object_ctor = JS_GetPropertyStr(ctx, global, "Object");
     JSValue keys = JS_GetPropertyStr(ctx, object_ctor, "keys");
@@ -182,6 +187,6 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
 }
 
 napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
-  std::unordered_map<JSValue, napi_value> seen;
+  std::unordered_map<JSObject*, napi_value> seen;
   return qjs_to_napi_value_internal(env, ctx, val, seen);
 }
