@@ -21,11 +21,7 @@ function main (binding) {
   std.initHandlers(rt)
   const ctx = new Context(rt)
   console.log('ctx:', ctx.data())
-  const promise = ctx.eval("Promise.resolve(Object.keys(globalThis)).then(console.log)")
-  promise.then((ret) => {
-    console.log(ret)
-  })
-  std.loop(ctx)
+  ctx.eval("Promise.resolve(Object.keys(globalThis))").then(console.log)
   console.log(Date.now())
   console.log(ctx.eval('(a = { c: 1 }, a.b = a, a)'))
   console.log(ctx.eval('(a = [,1], a[2] = a, a)'))
@@ -42,6 +38,7 @@ function main (binding) {
     0x00, 0x00, 0x00, 0x24, 0x01, 0x00, 0xcd, 0x28,
     0xc8, 0x03, 0x01, 0x00
   ]))
+  std.loop(ctx)
   ctx.dispose()
   rt.dispose()
 }

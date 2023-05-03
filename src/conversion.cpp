@@ -17,7 +17,7 @@ static JSValue promise_then_cb_fulfill(JSContext *ctx, JSValueConst this_val, in
   free(data);
   JS_FreeValue(ctx, *func_data);
   napi_resolve_deferred(env, deferred, qjs_to_napi_value(env, ctx, *argv));
-  return *argv;
+  return JS_DupValue(ctx, *argv);
 }
 
 static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data) {
@@ -27,7 +27,7 @@ static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int
   free(data);
   JS_FreeValue(ctx, *func_data);
   napi_reject_deferred(env, deferred, qjs_to_napi_value(env, ctx, *argv));
-  JS_Throw(ctx, *argv);
+  JS_Throw(ctx, JS_DupValue(ctx, *argv));
   return JS_UNDEFINED;
 }
 
