@@ -3,8 +3,16 @@
 
 #include <quickjs.h>
 #include <quickjs-libc.h>
-#include "context.h"
+#include <js_native_api_types.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

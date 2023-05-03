@@ -27,7 +27,8 @@ function main (binding) {
   })
   std.loop(ctx)
   console.log(Date.now())
-  console.log(ctx.eval('new Date()'))
+  console.log(ctx.eval('(a = { c: 1 }, a.b = a, a)'))
+  console.log(ctx.eval('(a = [,1], a[2] = a, a)'))
   console.log(ctx.eval('/^a\\\\$/gi'))
   std.evalBinary(ctx, new Uint8Array([
     0x02, 0x04, 0x0e, 0x63, 0x6f, 0x6e, 0x73, 0x6f,

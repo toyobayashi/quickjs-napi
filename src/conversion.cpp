@@ -1,4 +1,7 @@
+#include <unordered_map>
 #include <string.h>
+#include <quickjs.h>
+#include <quickjs-libc.h>
 #include "helper_macro.h"
 #include "conversion.h"
 
@@ -28,7 +31,7 @@ static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int
   return JS_UNDEFINED;
 }
 
-napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
+static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSValue val, std::unordered_map<JSValue, napi_value>& seen) {
   napi_value ret = NULL;
   if (JS_IsUndefined(val)) {
     NAPI_CALL(env, napi_get_undefined(env, &ret));
@@ -95,7 +98,7 @@ napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
     if (!JS_IsUndefined(date_ctor) && JS_IsInstanceOf(ctx, val, date_ctor)) {
       JSValue get_time = JS_GetPropertyStr(ctx, val, "getTime");
       JSValue return_val = JS_Call(ctx, get_time, val, 0, NULL);
-      double time =JS_VALUE_GET_FLOAT64(return_val);
+      double time = JS_VALUE_GET_FLOAT64(return_val);
       JS_FreeValue(ctx, return_val);
       JS_FreeValue(ctx, get_time);
       JS_FreeValue(ctx, date_ctor);
@@ -108,8 +111,8 @@ napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
     JSValue regexp_ctor = JS_GetPropertyStr(ctx, global, "RegExp");
     if (!JS_IsUndefined(regexp_ctor) && JS_IsInstanceOf(ctx, val, regexp_ctor)) {
       const char* cstr = JS_ToCString(ctx, val);
-      char* last_slash = strrchr(cstr, '/');
-      char* mode_str = last_slash + 1;
+      const char* last_slash = strrchr(cstr, '/');
+      const char* mode_str = last_slash + 1;
       napi_value args[2];
       napi_create_string_utf8(env, cstr + 1, (size_t)last_slash - (size_t)cstr - 1, args);
       napi_create_string_utf8(env, mode_str, NAPI_AUTO_LENGTH, args + 1);
@@ -124,6 +127,51 @@ napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
     }
     JS_FreeValue(ctx, regexp_ctor);
 
+    if (JS_IsArray(ctx, val)) {
+      napi_create_array(env, &ret);
+      if (seen.find(val) == seen.end()) {
+        seen[val] = ret;
+      }
+
+      JSValue keys_len = JS_GetPropertyStr(ctx, val, "length");
+      uint32_t len = (uint32_t)JS_VALUE_GET_INT(keys_len);
+      for (uint32_t i = 0; i < len; ++i) {
+        JSValue v = JS_GetPropertyUint32(ctx, val, i);
+        napi_set_element(env, ret, i, qjs_to_napi_value_internal(env, ctx, v, seen));
+        JS_FreeValue(ctx, v);
+      }
+      JS_FreeValue(ctx, keys_len);
+
+      JS_FreeValue(ctx, global);
+      return ret;
+    }
+
+    napi_create_object(env, &ret);
+    if (seen.find(val) == seen.end()) {
+      seen[val] = ret;
+    }
+
+    JSValue object_ctor = JS_GetPropertyStr(ctx, global, "Object");
+    JSValue keys = JS_GetPropertyStr(ctx, object_ctor, "keys");
+    JSValue keys_arr = JS_Call(ctx, keys, object_ctor, 1, &val);
+    JSValue keys_len = JS_GetPropertyStr(ctx, keys_arr, "length");
+    uint32_t len = (uint32_t)JS_VALUE_GET_INT(keys_len);
+    for (uint32_t i = 0; i < len; ++i) {
+      JSValue k = JS_GetPropertyUint32(ctx, keys_arr, i);
+      const char* kstr = JS_ToCString(ctx, k);
+      JSAtom atom = JS_ValueToAtom(ctx, k);
+      JSValue v = JS_GetProperty(ctx, val, atom);
+      napi_set_named_property(env, ret, kstr, qjs_to_napi_value_internal(env, ctx, v, seen));
+      JS_FreeValue(ctx, v);
+      JS_FreeAtom(ctx, atom);
+      JS_FreeCString(ctx, kstr);
+      JS_FreeValue(ctx, k);
+    }
+    JS_FreeValue(ctx, keys_len);
+    JS_FreeValue(ctx, keys_arr);
+    JS_FreeValue(ctx, keys);
+    JS_FreeValue(ctx, object_ctor);
+
     JS_FreeValue(ctx, global);
     return ret;
   } else {
@@ -131,4 +179,9 @@ napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
     return NULL;
   }
   return ret;
+}
+
+napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
+  std::unordered_map<JSValue, napi_value> seen;
+  return qjs_to_napi_value_internal(env, ctx, val, seen);
 }
