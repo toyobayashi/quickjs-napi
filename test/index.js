@@ -27,7 +27,8 @@ function main (binding) {
   })
   std.loop(ctx)
   console.log(Date.now())
-  console.log(ctx.eval('Symbol("local.symbol")'))
+  console.log(ctx.eval('new Date()'))
+  console.log(ctx.eval('/^a\\\\$/gi'))
   std.evalBinary(ctx, new Uint8Array([
     0x02, 0x04, 0x0e, 0x63, 0x6f, 0x6e, 0x73, 0x6f,
     0x6c, 0x65, 0x06, 0x6c, 0x6f, 0x67, 0x12, 0x68,

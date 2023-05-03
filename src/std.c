@@ -2,6 +2,7 @@
 #include <quickjs-libc.h>
 #include "std.h"
 #include "helper_macro.h"
+#include "conversion.h"
 
 #ifdef __wasm__
 #include <emnapi.h>
@@ -63,8 +64,6 @@ static JSValue eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
         return val;
     }
 }
-
-napi_value to_napi_value(napi_env env, JSContext* ctx, JSValue val);
 
 static napi_value qjs_std_eval_binary(napi_env env, napi_callback_info info) {
   JSContext* ctx = NULL;
@@ -140,11 +139,12 @@ static napi_value qjs_std_eval_binary(napi_env env, napi_callback_info info) {
     JSValue message = JS_GetPropertyStr(ctx, error, "message");
     const char* msg = JS_ToCString(ctx, message);
     NAPI_CALL(env, napi_throw_error(env, NULL, msg));
+    JS_FreeCString(ctx, msg);
     JS_FreeValue(ctx, message);
     JS_FreeValue(ctx, error);
   }
 
-  napi_value ret = to_napi_value(env, ctx, val);
+  napi_value ret = qjs_to_napi_value(env, ctx, val);
   JS_FreeValue(ctx, val);
   return ret;
 }

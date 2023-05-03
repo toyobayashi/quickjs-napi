@@ -23,6 +23,7 @@ set(QJS_BINDING_SRC
   "src/binding.c"
   "src/context.c"
   "src/runtime.c"
+  "src/conversion.c"
   "src/std.c"
 )
 
