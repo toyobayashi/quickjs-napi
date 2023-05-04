@@ -2,8 +2,6 @@
   "env": {
     "includePath": [
       "${default}",
-      // "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/16.15.0/include/node"
-      "${workspaceFolder}/node_modules/emnapi/include",
       "${workspaceFolder}/deps/quickjs"
     ],
     "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE"],
@@ -20,7 +18,7 @@
       "intelliSenseMode": "msvc-x64",
       "cStandard": "c11",
       "cppStandard": "c++17",
-      "includePath": ["${includePath}"]
+      "includePath": ["${includePath}", "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/18.12.1/include/node"]
     },
     {
       "name": "Linux",
@@ -55,7 +53,7 @@
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++17",
-      "includePath": ["${includePath}"]
+      "includePath": ["${includePath}", "${workspaceFolder}/node_modules/emnapi/include"]
     },
     {
       "name": "Win32 Emscripten",
@@ -64,7 +62,7 @@
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++17",
-      "includePath": ["${includePath}"]
+      "includePath": ["${includePath}", "${workspaceFolder}/node_modules/emnapi/include"]
     },
     {
       "name": "WASI",
@@ -73,7 +71,7 @@
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++14",
-      "includePath": ["${includePath}"]
+      "includePath": ["${includePath}", "${workspaceFolder}/node_modules/emnapi/include"]
     },
     {
       "name": "WASI-THREADS",
@@ -82,7 +80,7 @@
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++14",
-      "includePath": ["${includePath}"],
+      "includePath": ["${includePath}", "${workspaceFolder}/node_modules/emnapi/include"],
       "compilerArgs": ["--target=wasm32-wasi-threads"]
     },
     {
@@ -92,7 +90,7 @@
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++14",
-      "includePath": ["${includePath}"],
+      "includePath": ["${includePath}", "${workspaceFolder}/node_modules/emnapi/include"],
       "compilerArgs": ["--target=wasm32"]
     }
   ],
