@@ -22,9 +22,16 @@ function main (binding) {
   const ctx = new Context(rt)
   console.log('ctx:', ctx.data())
   ctx.eval("Promise.resolve(Object.keys(globalThis))").then(console.log)
-  console.log(Date.now())
+  console.log(ctx.eval('undefined'))
+  console.log(ctx.eval('null'))
+  console.log(ctx.eval('true'))
+  console.log(ctx.eval('false'))
+  console.log(ctx.eval('NaN'))
+  console.log(ctx.eval('Date.now()'))
+  console.log(ctx.eval('"string"'))
+  console.log(ctx.eval('Symbol("local.symbol")'))
   console.log(ctx.eval('(a = { c: 1 }, a.b = a, a)'))
-  console.log(ctx.eval('(a = [,1], a[2] = a, a)'))
+  console.log(ctx.eval('(x = [,1], x[2] = x, x[3] = a, x)'))
   console.log(ctx.eval('/^a\\\\$/gi'))
   std.evalBinary(ctx, new Uint8Array([
     0x02, 0x04, 0x0e, 0x63, 0x6f, 0x6e, 0x73, 0x6f,
