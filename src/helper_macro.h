@@ -70,7 +70,7 @@
   napi_value argv[(argc_in)]; \
   napi_value this_arg; \
   NAPI_CALL(env, napi_get_cb_info((env), (info), &argc, argv, &this_arg, NULL)); \
-  if (argc != (argc_in)) { \
+  if (argc < (argc_in)) { \
     NAPI_CALL(env, napi_throw_error(env, NULL, (argc_msg))); \
     return NULL; \
   }
@@ -79,7 +79,7 @@
   size_t argc = (argc_in); \
   napi_value argv[(argc_in)]; \
   NAPI_CALL(env, napi_get_cb_info((env), (info), &argc, argv, NULL, NULL)); \
-  if (argc != (argc_in)) { \
+  if (argc < (argc_in)) { \
     NAPI_CALL(env, napi_throw_error(env, NULL, (argc_msg))); \
     return NULL; \
   }

@@ -297,6 +297,10 @@ static napi_value qjs_to_napi_value_internal(napi_env env, const qjspp::Value& v
     seen[val_obj] = ret;
 
     qjspp::Value object_ctor(ctx, JS_GetPropertyStr(ctx, global, "Object"));
+    if (object_ctor.IsUndefined()) {
+      NAPI_CALL(env, napi_throw_type_error(env, nullptr, "Object is not defined, try to use JS_AddIntrinsicBaseObjects"));
+      return nullptr;
+    }
     qjspp::Value keys(ctx, JS_GetPropertyStr(ctx, object_ctor, "keys"));
     JSValue value = val.data();
     qjspp::Value keys_arr(ctx, JS_Call(ctx, keys, object_ctor, 1, &value));

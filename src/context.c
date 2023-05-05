@@ -68,12 +68,10 @@ static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
   JSValue value = JS_Eval(ctx, buf, len, "<evalScript>", JS_EVAL_TYPE_GLOBAL);
   if (JS_IsException(value)) {
     JSValue error = JS_GetException(ctx);
-    JSValue message = JS_GetPropertyStr(ctx, error, "message");
-    const char* msg = JS_ToCString(ctx, message);
-    napi_throw_error(env, NULL, msg);
-    JS_FreeCString(ctx, msg);
-    JS_FreeValue(ctx, message);
+    napi_value err = qjs_to_napi_value(env, ctx, error);
     JS_FreeValue(ctx, error);
+    NAPI_CALL(env, napi_throw(env, err));
+    return NULL;
   }
 
   napi_value ret = qjs_to_napi_value(env, ctx, value);

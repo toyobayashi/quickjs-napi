@@ -89,6 +89,7 @@ class Value {
   bool IsObject() const noexcept { return JS_IsObject(data_); }
   bool IsFunction() const noexcept { return JS_IsFunction(ctx_, data_); }
   bool IsError() const noexcept { return JS_IsError(ctx_, data_); }
+  bool IsException() const noexcept { return JS_IsException(data_); }
 
   bool InstanceOf(JSValue val) const noexcept { return JS_IsInstanceOf(ctx_, data_, val); }
   bool InstanceOf(const Value& val) const noexcept { return JS_IsInstanceOf(ctx_, data_, val); }
