@@ -32,6 +32,10 @@ function main (binding) {
   console.log(ctx.eval('Symbol("local.symbol")'))
   console.log(ctx.eval('(a = { c: 1 }, a.b = a, a)'))
   console.log(ctx.eval('(x = [,1], x[2] = x, x[3] = a, x)'))
+  console.log(ctx.eval('new TypeError("TypeError")'))
+  let fn = ctx.eval('(() => "from QJS")')
+  console.log(fn())
+  fn.dispose()
   console.log(ctx.eval('/^a\\\\$/gi'))
   std.evalBinary(ctx, new Uint8Array([
     0x02, 0x04, 0x0e, 0x63, 0x6f, 0x6e, 0x73, 0x6f,

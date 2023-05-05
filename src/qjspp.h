@@ -5,13 +5,57 @@
 
 namespace qjspp {
 
+class Value;
+class CString;
+class Atom;
+
+class CString final {
+ private:
+  JSContext* ctx_;
+  const char* data_;
+ public:
+  CString(JSContext* ctx, const char* val) noexcept: ctx_(ctx), data_(val) { assert(ctx != nullptr); }
+  ~CString() noexcept {
+    if (data_) {
+      JS_FreeCString(ctx_, data_);
+      ctx_ = nullptr;
+      data_ = nullptr;
+    }
+  }
+  CString(CString&& other) noexcept: ctx_(std::exchange(other.ctx_, nullptr)), data_(std::exchange(other.data_, nullptr)) {}
+  CString& operator=(CString&& other) noexcept {
+    if (this == &other) return *this;
+    if (data_) JS_FreeCString(ctx_, data_);
+    ctx_ = std::exchange(other.ctx_, nullptr);
+    data_ = std::exchange(other.data_, nullptr);
+    return *this;
+  }
+  JSContext* ctx() const noexcept { return ctx_; }
+  const char* data() const noexcept { return data_; }
+  operator const char*() const noexcept { return data_; }
+};
+
+class Atom final {
+ private:
+  JSContext* ctx_;
+  JSAtom data_;
+ public:
+  Atom(JSContext* ctx, JSAtom val) noexcept: ctx_(ctx), data_(val) { assert(ctx != nullptr); }
+  ~Atom() noexcept { if (ctx_) { JS_FreeAtom(ctx_, data_); ctx_ = nullptr; } }
+  Atom(Atom&& other) noexcept: ctx_(std::exchange(other.ctx_, nullptr)), data_(other.data_) {}
+  JSContext* ctx() const noexcept { return ctx_; }
+  JSAtom data() const noexcept { return data_; }
+  operator JSAtom() const noexcept { return data_; }
+  Value ToString() const noexcept;
+  CString ToCString() const noexcept;
+};
+
 class Value {
  protected:
   JSContext* ctx_;
   JSValue data_;
  public:
   static Value New(JSContext* ctx, JSValue val) noexcept { return Value(ctx, JS_DupValue(ctx, val)); }
-  Value() noexcept: ctx_(nullptr), data_() {}
   Value(JSContext* ctx, JSValue val) noexcept: ctx_(ctx), data_(std::move(val)) { assert(ctx != nullptr); }
   virtual ~Value() noexcept { if (ctx_) { JS_FreeValue(ctx_, data_); ctx_ = nullptr; } }
   Value(const Value& other) noexcept: ctx_(other.ctx_), data_(JS_DupValue(other.ctx_, other.data_)) {};
@@ -48,46 +92,13 @@ class Value {
 
   bool InstanceOf(JSValue val) const noexcept { return JS_IsInstanceOf(ctx_, data_, val); }
   bool InstanceOf(const Value& val) const noexcept { return JS_IsInstanceOf(ctx_, data_, val); }
+
+  CString ToCString() const noexcept { return CString(ctx_, JS_ToCString(ctx_, data_)); }
+  Atom ToAtom() const noexcept { return Atom(ctx_, JS_ValueToAtom(ctx_, data_)); }
 };
 
-class CString final {
- private:
-  JSContext* ctx_;
-  const char* data_;
- public:
-  CString(JSContext* ctx, const char* val) noexcept: ctx_(ctx), data_(val) { assert(ctx != nullptr); }
-  CString(JSContext* ctx, JSValue val) noexcept: ctx_(ctx), data_(JS_ToCString(ctx, val)) { assert(ctx != nullptr); }
-  CString(const Value& val) noexcept: CString(val.ctx(), val.data()) {}
-  ~CString() noexcept { if (data_) { JS_FreeCString(ctx_, data_); ctx_ = nullptr; data_ = nullptr; } }
-  CString(CString&& other) noexcept: ctx_(std::exchange(other.ctx_, nullptr)), data_(std::exchange(other.data_, nullptr)) {}
-  CString& operator=(CString&& other) noexcept {
-    if (this == &other) return *this;
-    if (data_) JS_FreeCString(ctx_, data_);
-    ctx_ = std::exchange(other.ctx_, nullptr);
-    data_ = std::exchange(other.data_, nullptr);
-    return *this;
-  }
-  JSContext* ctx() const noexcept { return ctx_; }
-  const char* data() const noexcept { return data_; }
-  operator const char*() const noexcept { return data_; }
-};
-
-class Atom final {
- private:
-  JSContext* ctx_;
-  JSAtom data_;
- public:
-  Atom(JSContext* ctx, JSAtom val) noexcept: ctx_(ctx), data_(val) { assert(ctx != nullptr); }
-  Atom(JSContext* ctx, JSValue val) noexcept: ctx_(ctx), data_(JS_ValueToAtom(ctx, val)) { assert(ctx != nullptr); }
-  Atom(const Value& val) noexcept: Atom(val.ctx(), val.data()) {}
-  ~Atom() noexcept { if (ctx_) { JS_FreeAtom(ctx_, data_); ctx_ = nullptr; } }
-  Atom(Atom&& other) noexcept: ctx_(std::exchange(other.ctx_, nullptr)), data_(other.data_) {}
-  JSContext* ctx() const noexcept { return ctx_; }
-  JSAtom data() const noexcept { return data_; }
-  operator JSAtom() const noexcept { return data_; }
-  Value ToString() const noexcept { return Value(ctx_, JS_AtomToString(ctx_, data_)); }
-  CString ToCString() const noexcept { return CString(ctx_, JS_AtomToCString(ctx_, data_)); }
-};
+inline Value Atom::ToString() const noexcept { return Value(ctx_, JS_AtomToString(ctx_, data_)); }
+inline CString Atom::ToCString() const noexcept { return CString(ctx_, JS_AtomToCString(ctx_, data_)); }
 
 inline Value Global(JSContext* ctx) {
   return Value(ctx, JS_GetGlobalObject(ctx));
