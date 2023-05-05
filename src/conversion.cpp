@@ -32,43 +32,44 @@ static JSValue promise_then_cb_reject(JSContext *ctx, JSValueConst this_val, int
   return JS_UNDEFINED;
 }
 
-static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSValue val, std::unordered_map<JSObject*, napi_value>& seen) {
+static napi_value qjs_to_napi_value_internal(napi_env env, const qjspp::Value& val, std::unordered_map<JSObject*, napi_value>& seen) {
+  JSContext* ctx = val.ctx();
   napi_value ret = nullptr;
-  if (JS_IsUndefined(val)) {
+  if (val.IsUndefined()) {
     NAPI_CALL(env, napi_get_undefined(env, &ret));
-  } else if (JS_IsNull(val)) {
+  } else if (val.IsNull()) {
     NAPI_CALL(env, napi_get_null(env, &ret));
-  } else if (JS_IsBool(val)) {
-    NAPI_CALL(env, napi_get_boolean(env, (bool)JS_VALUE_GET_BOOL(val), &ret));
-  } else if (JS_IsNumber(val)) {
+  } else if (val.IsBoolean()) {
+    NAPI_CALL(env, napi_get_boolean(env, (bool)JS_VALUE_GET_BOOL(val.data()), &ret));
+  } else if (val.IsNumber()) {
     napi_value global;
     if (JS_VALUE_IS_NAN(val)) {
       NAPI_CALL(env, napi_get_global(env, &global));
       NAPI_CALL(env, napi_get_named_property(env, global, "NaN", &ret));
-    } else if (JS_VALUE_GET_TAG(val) == JS_TAG_FLOAT64) {
-      NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_FLOAT64(val), &ret));
+    } else if (JS_VALUE_GET_TAG(val.data()) == JS_TAG_FLOAT64) {
+      NAPI_CALL(env, napi_create_double(env, JS_VALUE_GET_FLOAT64(val.data()), &ret));
     } else {
       int64_t tmp;
       JS_ToInt64(ctx, &tmp, val);
       NAPI_CALL(env, napi_create_int64(env, tmp, &ret));
     }
-  } else if (JS_IsString(val)) {
-    qjspp::CString str(ctx, val);
+  } else if (val.IsString()) {
+    qjspp::CString str(val);
     NAPI_CALL(env, napi_create_string_utf8(env, str, NAPI_AUTO_LENGTH, &ret));
-  } else if (JS_IsBigInt(ctx, val)) {
+  } else if (val.IsBigInt()) {
     int64_t tmp;
     JS_ToBigInt64(ctx, &tmp, val);
     NAPI_CALL(env, napi_create_bigint_int64(env, tmp, &ret));
-  } else if (JS_IsSymbol(val)) {
-    qjspp::Atom atom(ctx, val);
+  } else if (val.IsSymbol()) {
+    qjspp::Atom atom(val);
     qjspp::CString cstr = atom.ToCString();
     napi_value desc;
     NAPI_CALL(env, napi_create_string_utf8(env, cstr, NAPI_AUTO_LENGTH, &desc));
     NAPI_CALL(env, napi_create_symbol(env, desc, &ret));
-  } else if (JS_IsObject(val)) {
+  } else if (val.IsObject()) {
     qjspp::Value global(qjspp::Global(ctx));
     qjspp::Value promise_ctor(ctx, JS_GetPropertyStr(ctx, global, "Promise"));
-    if (!JS_IsUndefined(promise_ctor) && JS_IsInstanceOf(ctx, val, promise_ctor)) {
+    if (!promise_ctor.IsUndefined() && val.InstanceOf(promise_ctor)) {
       qjspp::Value then(ctx, JS_GetPropertyStr(ctx, val, "then"));
       JSValue deferred_ref = JS_NewObject(ctx);
       napi_deferred deferred;
@@ -91,7 +92,7 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
     }
 
     qjspp::Value date_ctor(ctx, JS_GetPropertyStr(ctx, global, "Date"));
-    if (!JS_IsUndefined(date_ctor) && JS_IsInstanceOf(ctx, val, date_ctor)) {
+    if (!date_ctor.IsUndefined() && val.InstanceOf(date_ctor)) {
       qjspp::Value get_time(ctx, JS_GetPropertyStr(ctx, val, "getTime"));
       qjspp::Value return_val(ctx, JS_Call(ctx, get_time, val, 0, nullptr));
       double time = JS_VALUE_GET_FLOAT64(return_val.data());
@@ -100,8 +101,8 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
     }
 
     qjspp::Value regexp_ctor(ctx, JS_GetPropertyStr(ctx, global, "RegExp"));
-    if (!JS_IsUndefined(regexp_ctor) && JS_IsInstanceOf(ctx, val, regexp_ctor)) {
-      qjspp::CString cstr(ctx, val);
+    if (!regexp_ctor.IsUndefined() && val.InstanceOf(regexp_ctor)) {
+      qjspp::CString cstr(val);
       const char* last_slash = strrchr(cstr, '/');
       const char* mode_str = last_slash + 1;
       napi_value args[2];
@@ -114,33 +115,35 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
       return ret;
     }
 
-    if (JS_IsArray(ctx, val)) {
-      if (seen.find(JS_VALUE_GET_OBJ(val)) != seen.end()) {
-        return seen[JS_VALUE_GET_OBJ(val)];
+    JSObject* val_obj = JS_VALUE_GET_OBJ(val.data());
+    if (val.IsArray()) {
+      if (seen.find(val_obj) != seen.end()) {
+        return seen[val_obj];
       }
       NAPI_CALL(env, napi_create_array(env, &ret));
-      seen[JS_VALUE_GET_OBJ(val)] = ret;
+      seen[val_obj] = ret;
 
       qjspp::Value keys_len(ctx, JS_GetPropertyStr(ctx, val, "length"));
       uint32_t len = (uint32_t)JS_VALUE_GET_INT(keys_len.data());
 
       for (uint32_t i = 0; i < len; ++i) {
         qjspp::Value v(ctx, JS_GetPropertyUint32(ctx, val, i));
-        NAPI_CALL(env, napi_set_element(env, ret, i, qjs_to_napi_value_internal(env, ctx, v, seen)));
+        NAPI_CALL(env, napi_set_element(env, ret, i, qjs_to_napi_value_internal(env, v, seen)));
       }
 
       return ret;
     }
 
-    if (seen.find(JS_VALUE_GET_OBJ(val)) != seen.end()) {
-      return seen[JS_VALUE_GET_OBJ(val)];
+    if (seen.find(val_obj) != seen.end()) {
+      return seen[val_obj];
     }
     NAPI_CALL(env, napi_create_object(env, &ret));
-    seen[JS_VALUE_GET_OBJ(val)] = ret;
+    seen[val_obj] = ret;
 
     qjspp::Value object_ctor(ctx, JS_GetPropertyStr(ctx, global, "Object"));
     qjspp::Value keys(ctx, JS_GetPropertyStr(ctx, object_ctor, "keys"));
-    qjspp::Value keys_arr(ctx, JS_Call(ctx, keys, object_ctor, 1, &val));
+    JSValue value = val.data();
+    qjspp::Value keys_arr(ctx, JS_Call(ctx, keys, object_ctor, 1, &value));
     qjspp::Value keys_len(ctx, JS_GetPropertyStr(ctx, keys_arr, "length"));
     uint32_t len = (uint32_t)JS_VALUE_GET_INT(keys_len.data());
     for (uint32_t i = 0; i < len; ++i) {
@@ -148,7 +151,7 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
       qjspp::CString kstr(ctx, k);
       qjspp::Atom atom(ctx, k);
       qjspp::Value v(ctx, JS_GetProperty(ctx, val, atom));
-      NAPI_CALL(env, napi_set_named_property(env, ret, kstr, qjs_to_napi_value_internal(env, ctx, v, seen)));
+      NAPI_CALL(env, napi_set_named_property(env, ret, kstr, qjs_to_napi_value_internal(env, v, seen)));
     }
 
     return ret;
@@ -161,5 +164,6 @@ static napi_value qjs_to_napi_value_internal(napi_env env, JSContext* ctx, JSVal
 
 napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val) {
   std::unordered_map<JSObject*, napi_value> seen;
-  return qjs_to_napi_value_internal(env, ctx, val, seen);
+  qjspp::Value value = qjspp::Value::New(ctx, val);
+  return qjs_to_napi_value_internal(env, value, seen);
 }
