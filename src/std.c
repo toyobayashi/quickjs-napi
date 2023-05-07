@@ -40,6 +40,14 @@ static napi_value qjs_std_dump_error(napi_env env, napi_callback_info info) {
   return NULL;
 }
 
+static napi_value qjs_std_add_helpers(napi_env env, napi_callback_info info) {
+  JSContext* ctx = NULL;
+  NAPI_GET_CB_INFO(env, info, 1, "Invalid Context")
+  NAPI_UNWRAP(env, argv[0], &ctx, "Invalid Context");
+  js_std_add_helpers(ctx, 0, NULL);
+  return NULL;
+}
+
 static JSValue eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                         int load_only)
 {
@@ -154,6 +162,7 @@ void register_qjs_std_namespace(napi_env env, napi_value exports) {
   NAPI_SET_FUNCTION_VOID(env, ns, "initHandlers", qjs_std_init_handlers);
   NAPI_SET_FUNCTION_VOID(env, ns, "freeHandlers", qjs_std_free_handlers);
   NAPI_SET_FUNCTION_VOID(env, ns, "dumpError", qjs_std_dump_error);
+  NAPI_SET_FUNCTION_VOID(env, ns, "addHelpers", qjs_std_add_helpers);
   NAPI_SET_FUNCTION_VOID(env, ns, "evalBinary", qjs_std_eval_binary);
   NAPI_CALL_VOID(env, napi_set_named_property(env, exports, "std", ns));
 }

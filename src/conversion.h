@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 napi_value qjs_to_napi_value(napi_env env, JSContext* ctx, JSValue val);
+JSValue qjs_from_napi_value(napi_env env, JSContext* ctx, napi_value val);
 
 #ifdef __cplusplus
 }

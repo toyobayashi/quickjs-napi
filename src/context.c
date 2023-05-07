@@ -14,18 +14,6 @@ static napi_value qjs_context_constructor(napi_env env, napi_callback_info info)
     NAPI_CALL(env, napi_throw_error(env, NULL, "failed to create context"));
     return NULL;
   }
-  JS_AddIntrinsicBaseObjects(ctx);
-  JS_AddIntrinsicDate(ctx);
-  JS_AddIntrinsicEval(ctx);
-  JS_AddIntrinsicStringNormalize(ctx);
-  JS_AddIntrinsicRegExp(ctx);
-  JS_AddIntrinsicJSON(ctx);
-  JS_AddIntrinsicProxy(ctx);
-  JS_AddIntrinsicMapSet(ctx);
-  JS_AddIntrinsicTypedArrays(ctx);
-  JS_AddIntrinsicPromise(ctx);
-  JS_AddIntrinsicBigInt(ctx);
-  js_std_add_helpers(ctx, 0, NULL);
   NAPI_CALL(env, napi_wrap(env, this_arg, ctx, NULL, NULL, NULL));
   return this_arg;
 }
@@ -38,6 +26,30 @@ static napi_value qjs_context_dispose(napi_env env, napi_callback_info info) {
   JS_FreeContext(ctx);
   return NULL;
 }
+
+#define ZERO_PARAM_METHOD_NAME(n) qjs_context_##n
+
+#define DEF_CONTEXT_ZERO_PARAM_METHOD(NAME) \
+  static napi_value ZERO_PARAM_METHOD_NAME(NAME) \
+  (napi_env env, napi_callback_info info) { \
+    JSContext* ctx = NULL; \
+    NAPI_GET_CB_INFO_THIS(env, info) \
+    NAPI_UNWRAP(env, this_arg, &ctx, "Invalid Context"); \
+    JS_##NAME(ctx); \
+    return NULL; \
+  }
+
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicBaseObjects)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicDate)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicEval)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicStringNormalize)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicRegExp)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicJSON)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicProxy)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicMapSet)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicTypedArrays)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicPromise)
+DEF_CONTEXT_ZERO_PARAM_METHOD(AddIntrinsicBigInt)
 
 static napi_value qjs_context_data(napi_env env, napi_callback_info info) {
   JSContext* ctx = NULL;
@@ -79,6 +91,37 @@ static napi_value qjs_context_eval(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+static napi_value qjs_context_expose(napi_env env, napi_callback_info info) {
+  JSContext* ctx = NULL;
+  NAPI_GET_CB_INFO(env, info, 2, "Invalid parameters")
+  NAPI_CHECK_VALUE_TYPE(env, argv[0], napi_string, "typeof arguments[0] !== 'string'");
+  NAPI_UNWRAP(env, this_arg, &ctx, "Invalid Context");
+
+  JSValue value = qjs_from_napi_value(env, ctx, argv[1]);
+  bool pending;
+  napi_is_exception_pending(env, &pending);
+  if (pending) {
+    return NULL;
+  }
+
+  size_t len = 0;
+  NAPI_CALL(env, napi_get_value_string_utf8(env, argv[0], NULL, 0, &len));
+  char* buf = (char*)malloc(len + 1);
+  napi_status r = napi_get_value_string_utf8(env, argv[0], buf, len + 1, &len);
+  if (r != napi_ok) {
+    free(buf);
+    NAPI_CALL(env, r);
+  }
+  *(buf + len) = '\0';
+
+  JSValue global = JS_GetGlobalObject(ctx);
+  JS_SetPropertyStr(ctx, global, buf, value);
+  free(buf);
+  JS_FreeValue(ctx, global);
+
+  return NULL;
+}
+
 void register_qjs_context_class(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
     {
@@ -95,7 +138,23 @@ void register_qjs_context_class(napi_env env, napi_value exports) {
       "eval", NULL,
       qjs_context_eval, NULL, NULL, NULL,
       NAPI_INSTANCE_METHOD_ATTR, NULL
-    }
+    },
+    {
+      "expose", NULL,
+      qjs_context_expose, NULL, NULL, NULL,
+      NAPI_INSTANCE_METHOD_ATTR, NULL
+    },
+    { "addIntrinsicBaseObjects", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicBaseObjects), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicDate", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicDate), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicEval", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicEval), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicStringNormalize", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicStringNormalize), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicRegExp", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicRegExp), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicJSON", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicJSON), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicProxy", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicProxy), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicMapSet", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicMapSet), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicTypedArrays", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicTypedArrays), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicPromise", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicPromise), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL },
+    { "addIntrinsicBigInt", NULL, ZERO_PARAM_METHOD_NAME(AddIntrinsicBigInt), NULL, NULL, NULL, NAPI_INSTANCE_METHOD_ATTR, NULL }
   };
 
   size_t property_size = sizeof(properties) / sizeof(properties[0]);
