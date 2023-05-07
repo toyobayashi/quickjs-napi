@@ -46,7 +46,14 @@ function main (binding) {
   console.log(ctx.eval('(x = [,1], x[2] = x, x[3] = a, x)'))
   console.log(ctx.eval('new TypeError("TypeError")'))
   const fn = ctx.eval('((f, a) => f(a))')
-  console.log(fn((arg) => { console.log('ohhhhhhhhhhhhhhhhhhhhh'); return arg }, (a = { c: 1 }, a.b = a, a)))
+  const a = { c: 1 }
+  a.b = a
+  console.log(
+    fn(
+      (arg) => { console.log('ohhhhhhhhhhhhhhhhhhhhh'); return arg },
+      a
+    )
+  )
   fn.dispose()
   try {
     ctx.eval('(() => { throw new RangeError("RangeError") })()')
