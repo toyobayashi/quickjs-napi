@@ -41,10 +41,15 @@ if(IS_EMSCRIPTEN)
     "--minify=0"
     "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/src/pre.js"
   )
+  add_custom_command(TARGET ${QJS_TARGET_NAME} POST_BUILD
+    COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/script/compress.js" "$<TARGET_FILE:${QJS_TARGET_NAME}>"
+  )
 else()
   include_directories(${CMAKE_JS_INC})
   add_library(${QJS_TARGET_NAME} SHARED ${QJS_BINDING_SRC} ${CMAKE_JS_SRC})
   set_target_properties(${QJS_TARGET_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
+  set_target_properties(${QJS_TARGET_NAME} PROPERTIES C_STANDARD "11")
+  set_target_properties(${QJS_TARGET_NAME} PROPERTIES CXX_STANDARD "17")
   target_link_libraries(${QJS_TARGET_NAME} PRIVATE quickjs ${CMAKE_JS_LIB})
 endif()
 
