@@ -32,11 +32,11 @@
     "test": "node ./test/index.js"
   },
   "dependencies": {
-    "@emnapi/runtime": "^0.38.2",
+    "@emnapi/runtime": "^0.38.3",
     "cmake-js": "^7.2.1"
   },
   "devDependencies": {
-    "emnapi": "^0.38.2"
+    "emnapi": "^0.38.3"
   },
   "repository": {
     "type": "git",
