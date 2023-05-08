@@ -1,0 +1,7 @@
+.vscode
+/test
+
+/build/*
+/build/emscripten/*
+!/build/emscripten
+!/build/emscripten/qjs_binding.*

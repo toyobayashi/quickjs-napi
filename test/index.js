@@ -8,6 +8,7 @@ if (typeof window !== 'undefined') {
   })
 } else {
   main(require('..'))
+  // require('../index-wasm').init().then(main)
 }
 
 /**

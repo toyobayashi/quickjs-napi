@@ -2,20 +2,22 @@
   "name": "@tybys/quickjs-napi",
   "version": "0.0.1",
   "description": "QuickJS Node-API binding",
-  "main": "index.js",
-  "module": "./dist/quickjs.esm-bundler.js",
+  "main": "./index.js",
+  "module": "./index.js",
   "types": "./index.d.ts",
   "sideEffects": false,
   "exports": {
     ".": {
-      "module": "./dist/quickjs.esm-bundler.js",
+      "module": "./index.js",
       "import": "./index.mjs",
       "require": "./index.js",
       "types": "./index.d.ts"
     },
-    "./dist/quickjs.cjs.min": {
-      "default": "./dist/quickjs.cjs.min.js",
-      "types": "./index.d.ts"
+    "./index-wasm": {
+      "module": "./index-wasm.js",
+      "import": "./index-wasm.mjs",
+      "require": "./index-wasm.js",
+      "types": "./index-wasm.d.ts"
     }
   },
   "keywords": [
