@@ -66,7 +66,6 @@ static napi_value qjs_fn(napi_env env, napi_callback_info info) {
     for (size_t i = 0; i < argc; ++i) {
       JS_FreeValue(ctx, args[i]);
     }
-    js_std_loop(ctx);
     if (JS_IsException(r)) {
       JSValue err = JS_GetException(ctx);
       napi_value ret = qjs_to_napi_value(env, ctx, err);
