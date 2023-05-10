@@ -1,8 +1,8 @@
-#include <quickjs.h>
 #include <quickjs-libc.h>
 #include "std.h"
 #include "helper_macro.h"
 #include "conversion.h"
+#include "runtime.h"
 
 #ifdef __wasm__
 #include <emnapi.h>
@@ -17,17 +17,21 @@ static napi_value qjs_std_loop(napi_env env, napi_callback_info info) {
 }
 
 static napi_value qjs_std_init_handlers(napi_env env, napi_callback_info info) {
+  qjs_runtime_wrap_s* wrap;
   JSRuntime* rt = NULL;
   NAPI_GET_CB_INFO(env, info, 1, "Invalid Runtime")
-  NAPI_UNWRAP(env, argv[0], &rt, "Invalid Runtime");
+  NAPI_UNWRAP(env, argv[0], &wrap, "Invalid Runtime");
+  rt = wrap->value;
   js_std_init_handlers(rt);
   return NULL;
 }
 
 static napi_value qjs_std_free_handlers(napi_env env, napi_callback_info info) {
+  qjs_runtime_wrap_s* wrap;
   JSRuntime* rt = NULL;
   NAPI_GET_CB_INFO(env, info, 1, "Invalid Runtime")
-  NAPI_UNWRAP(env, argv[0], &rt, "Invalid Runtime");
+  NAPI_UNWRAP(env, argv[0], &wrap, "Invalid Runtime");
+  rt = wrap->value;
   js_std_free_handlers(rt);
   return NULL;
 }

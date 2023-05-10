@@ -4,11 +4,14 @@
 #include "context.h"
 #include "helper_macro.h"
 #include "conversion.h"
+#include "runtime.h"
 
 static napi_value qjs_context_constructor(napi_env env, napi_callback_info info) {
+  qjs_runtime_wrap_s* wrap;
   JSRuntime* rt = NULL;
   NAPI_GET_CB_INFO(env, info, 1, "Invalid Runtime")
-  NAPI_UNWRAP(env, argv[0], &rt, "Invalid Runtime");
+  NAPI_UNWRAP(env, argv[0], &wrap, "Invalid Runtime");
+  rt = wrap->value;
   JSContext* ctx = JS_NewContextRaw(rt);
   if (ctx == NULL) {
     NAPI_CALL(env, napi_throw_error(env, NULL, "failed to create context"));
