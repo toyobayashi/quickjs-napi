@@ -57,7 +57,8 @@ export declare class Context {
   addIntrinsicTypedArrays(): void
   addIntrinsicPromise(): void
   addIntrinsicBigInt(): void
-  eval(source: string): void
+  eval(source: string, module?: boolean): any
+  compile(source: string, module?: boolean, byteSwap?: boolean): Uint8Array
   expose(name: string, value: any): void
 }
 
@@ -69,3 +70,5 @@ export declare namespace std {
   export function addHelpers(ctx: Context): void
   export function evalBinary(ctx: Context, buffer: ArrayBufferView, flags?: boolean | number): void
 }
+
+export declare function detectModule(source: string): boolean

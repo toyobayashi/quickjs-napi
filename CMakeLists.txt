@@ -25,6 +25,7 @@ set(QJS_BINDING_SRC
   "src/runtime.c"
   "src/conversion.cpp"
   "src/std.c"
+  "src/functions.c"
 )
 
 if(IS_EMSCRIPTEN)
